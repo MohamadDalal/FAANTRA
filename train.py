@@ -462,31 +462,11 @@ def train(args, model, train_loader, val_loader, optimizer, scheduler, criterion
         epoch_log_dict["epoch/lr"] = optimizer.param_groups[0]['lr']
 
         ########################################
-        # Evaluation and checkpoint saving
+        # Checkpoint saving (before evaluation to ensure progress is saved)
         ########################################
         save_path = os.path.join(model_save_path)
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        # Evaluate model only after start_map_epoch
-        if epoch >= args.start_map_epoch:
-            if args.anticipate:
-                if args.dataset == 'soccernetballanticipation':
-                    maps, _, _ = evaluate_BAA("val", model, n_class, class_dict, pad_idx, args, False, use_actionness or BCE_with_actionness, use_anchors)
-                else:
-                    maps, _, _ = evaluate("val", model, n_class, class_dict, pad_idx, args, 0.9 if args.n_query == 1 else 1-args.pred_perc, False, use_actionness or BCE_with_actionness, use_anchors)
-                for key in maps.keys():
-                    print(key)
-                    print(maps[key])
-                    epoch_log_dict[f"epoch/map_{key}"] = maps[key]
-            # Save a checkpoint for safety
-            torch.save(model.state_dict(), os.path.join(save_path, f'checkpoint{epoch+1}.ckpt'))
-            # Save the best checkpoint with highest stable tightV2 mAP (Average of 1s, 5s and infinity mAP)
-            if maps["tightV2"]["a_mAP_stable"] >= best_mAP:
-                print(f"\nSaving new best model at epoch {epoch+1} with mAP {maps['tightV2']['a_mAP_stable']} (+{maps['tightV2']['a_mAP_stable']-best_mAP})\n")
-                best_model_path = os.path.join(save_path, 'best_checkpoint.ckpt')
-                torch.save(model.state_dict(), best_model_path)
-                wandb.save(best_model_path) # Save best checkpoint on wandb. No other checkpoints are uploaded
-                best_mAP = maps["tightV2"]["a_mAP_stable"]
         # Save a checkpoint with all necessary information to resume training
         checkpoint_dir = os.path.join(save_path, "checkpoint")
         os.makedirs(checkpoint_dir, exist_ok=True)
@@ -500,6 +480,34 @@ def train(args, model, train_loader, val_loader, optimizer, scheduler, criterion
             "best_mAP": best_mAP,
             "best_model_path": best_model_path
         }, os.path.join(checkpoint_dir, "checkpoint.ckpt"))
+
+        ########################################
+        # Evaluation
+        ########################################
+        # Evaluate model only after start_map_epoch
+        if epoch >= args.start_map_epoch:
+            try:
+                if args.anticipate:
+                    if args.dataset == 'soccernetballanticipation':
+                        maps, _, _ = evaluate_BAA("val", model, n_class, class_dict, pad_idx, args, False, use_actionness or BCE_with_actionness, use_anchors)
+                    else:
+                        maps, _, _ = evaluate("val", model, n_class, class_dict, pad_idx, args, 0.9 if args.n_query == 1 else 1-args.pred_perc, False, use_actionness or BCE_with_actionness, use_anchors)
+                    for key in maps.keys():
+                        print(key)
+                        print(maps[key])
+                        epoch_log_dict[f"epoch/map_{key}"] = maps[key]
+                # Save a checkpoint for safety
+                torch.save(model.state_dict(), os.path.join(save_path, f'checkpoint{epoch+1}.ckpt'))
+                # Save the best checkpoint with highest stable tightV2 mAP (Average of 1s, 5s and infinity mAP)
+                if maps["tightV2"]["a_mAP_stable"] >= best_mAP:
+                    print(f"\nSaving new best model at epoch {epoch+1} with mAP {maps['tightV2']['a_mAP_stable']} (+{maps['tightV2']['a_mAP_stable']-best_mAP})\n")
+                    best_model_path = os.path.join(save_path, 'best_checkpoint.ckpt')
+                    torch.save(model.state_dict(), best_model_path)
+                    wandb.save(best_model_path) # Save best checkpoint on wandb. No other checkpoints are uploaded
+                    best_mAP = maps["tightV2"]["a_mAP_stable"]
+            except Exception as e:
+                print(f"\nWarning: Evaluation failed at epoch {epoch+1}: {e}")
+                print("Continuing training without evaluation metrics...\n")
         # Log statistics on wandb
         wandb.log(epoch_log_dict)
         

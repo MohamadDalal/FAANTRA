@@ -128,8 +128,9 @@ class ActionSpotDataset(Dataset):
         for video in tqdm(self._labels):
             num_clips = int(video['num_clips'])
             full_video_len = int((video['num_frames']//video['num_clips']))
-            # Only use the first clip_len + 5 seconds of each clip to avoid training on redundant frames.
-            video_len = int(full_video_len * ((self._clip_len*self._stride/FPS_SN)+5)/30)
+            # For corner anticipation, use full video length to capture labels at the end of clips
+            # Original formula only used first portion: int(full_video_len * ((self._clip_len*self._stride/FPS_SN)+5)/30)
+            video_len = full_video_len
             labels_files = load_json(os.path.join(LABELS_SNBA_PATH, video['video'] + '/Labels-ball.json'))['videos']
 
             for clip_idx in range(0,num_clips):
@@ -646,7 +647,7 @@ class ActionAnticipationVideoDataset(Dataset):
             labels_array[int((int(l['position'])/1000*FPS_SN/self._stride)-(clip_end/self._stride))] = self._class_dict[l['label']]
             visibility_array[int((int(l['position'])/1000*FPS_SN/self._stride)-(clip_end/self._stride))] = -1 if l['visibility'] == "not shown" else 1
 
-        return {'video': base_dir, 'clip': video_name, 'clip_num': clip_num, 'frame': frames,
+        return {'video': base_dir, 'clip': video_name, 'clip_num': torch.tensor(clip_num), 'frame': frames,
                 'label': labels_array, 'visibility': visibility_array}
     
     # Returns relevant information about each video (split)

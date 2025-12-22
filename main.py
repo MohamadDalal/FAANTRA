@@ -49,7 +49,7 @@ def main():
     # Load checkpoint
     checkpoint = {}
     if not args.checkpoint_path is None:
-        checkpoint = torch.load(args.checkpoint_path, map_location=device)
+        checkpoint = torch.load(args.checkpoint_path, map_location=device, weights_only=False)
 
     # initialize wandb
     wandb.login()
@@ -103,8 +103,8 @@ def main():
                             num_encoder_layers=args.n_encoder_layer, num_decoder_layers=args.n_decoder_layer,
                             src_attn_mask=src_attn_mask, tgt_attn_mask=tgt_attn_mask).to(device)
 
-    model_save_path = os.path.join(args.save_dir + 'model/transformer')
-    results_save_path = os.path.join(args.save_dir + '/results/transformer')
+    model_save_path = os.path.join(args.save_dir, 'transformer')
+    results_save_path = os.path.join(args.save_dir, 'results', 'transformer')
     if not os.path.exists(results_save_path):
         os.makedirs(results_save_path)
 
@@ -126,15 +126,16 @@ def main():
 
     # Dataloaders
     # Dataset is shuffled by default since it gives a random clip
+    prefetch = 2 if args.num_workers > 0 else None
     train_loader = DataLoader(
         trainset, shuffle=False, batch_size=loader_batch_size,
-        pin_memory=True, num_workers=args.num_workers,
-        prefetch_factor=2, collate_fn=trainset.my_collate)
-        
+        pin_memory=args.num_workers > 0, num_workers=args.num_workers,
+        prefetch_factor=prefetch, collate_fn=trainset.my_collate)
+
     val_loader = DataLoader(
         valset, shuffle=False, batch_size=loader_batch_size,
-        pin_memory=True, num_workers=args.num_workers,
-        prefetch_factor=2, collate_fn=valset.my_collate)
+        pin_memory=args.num_workers > 0, num_workers=args.num_workers,
+        prefetch_factor=prefetch, collate_fn=valset.my_collate)
     
     # Create scheduler
     num_steps_per_epoch = len(train_loader)
@@ -174,7 +175,7 @@ def main():
     
     # Load best checkpoint and evaluate it on test dataset
     if not best_model_path == "":
-        best_checkpoint = torch.load(best_model_path, map_location=device)
+        best_checkpoint = torch.load(best_model_path, map_location=device, weights_only=False)
         model.load_state_dict(best_checkpoint)
     if args.dataset == 'soccernetballanticipation':
         eval_results, _, _ = evaluate_BAA("test", model, n_class, actions_dict, pad_idx, args, True, use_actionness=args.actionness, use_anchors=args.use_anchors)

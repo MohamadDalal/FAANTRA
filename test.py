@@ -36,7 +36,7 @@ def main():
     else:
         device = torch.device('cuda')
         print('using gpu')
-    checkpoint = torch.load(args.checkpoint, map_location=device)
+    checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
     print("Config path:", config_path)
     print("Checkpoint path:", args.checkpoint)
     print("Overlap:", args.overlap)

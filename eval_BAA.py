@@ -130,7 +130,7 @@ def evaluate_BAA(split, model, n_class, classes_dict, pad_index, args, test=Fals
 
         with torch.no_grad():
             for clip in tqdm(DataLoader(
-                    split_data, num_workers=4 * 2, pin_memory=True,
+                    split_data, num_workers=args.num_workers, pin_memory=args.num_workers > 0,
                     batch_size=INFERENCE_BATCH_SIZE, shuffle=False
             )):
                 # Get predictions from model
