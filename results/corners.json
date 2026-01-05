@@ -1,0 +1,40 @@
+{
+  "model": "FAANTRA",
+  "dataset": "CornerTactics (SoccerNet corners)",
+  "task": "Corner kick outcome prediction",
+  "classes": [
+    "CLEARED",
+    "CORNER_WON",
+    "FOUL",
+    "GOAL",
+    "NOT_DANGEROUS",
+    "OFFSIDE",
+    "SHOT_OFF_TARGET",
+    "SHOT_ON_TARGET"
+  ],
+  "metrics": {
+    "mAP@1": 0.0,
+    "mAP@2": 0.0,
+    "mAP@∞": 12.58,
+    "tightV2_mAP": 3.14
+  },
+  "per_class_mAP_at_inf": {
+    "CLEARED": 2.52,
+    "CORNER_WON": 10.48,
+    "FOUL": 12.79,
+    "GOAL": 0.63,
+    "NOT_DANGEROUS": 25.76,
+    "OFFSIDE": 38.36,
+    "SHOT_OFF_TARGET": 7.97,
+    "SHOT_ON_TARGET": 2.10
+  },
+  "frame_level_error": 9.38,
+  "test_clips": 477,
+  "train_clips": 3868,
+  "valid_clips": 483,
+  "total_corners": 4836,
+  "checkpoint": "checkpoints/corners/corner_baselinemodel/transformer/checkpoint/checkpoint.ckpt",
+  "config": "config/SoccerNetBall/Corner-Config.json",
+  "evaluated_at": "2025-12-22T12:48:42",
+  "notes": "Lower mAP than ball actions due to task complexity - outcomes depend on events AFTER corner is taken"
+}
