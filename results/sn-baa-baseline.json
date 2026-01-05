@@ -1,0 +1,49 @@
+{
+  "model": "FAANTRA",
+  "dataset": "SoccerNet Ball Action Anticipation (SN-BAA)",
+  "task": "Ball action prediction (pass, drive, shot, etc.)",
+  "classes": [
+    "PASS",
+    "DRIVE",
+    "HIGH PASS",
+    "HEADER",
+    "OUT",
+    "CROSS",
+    "THROW IN",
+    "SHOT",
+    "BALL PLAYER BLOCK",
+    "PLAYER SUCCESSFUL TACKLE",
+    "FREE KICK",
+    "GOAL"
+  ],
+  "metrics": {
+    "mAP@1": 5.58,
+    "mAP@2": 10.61,
+    "mAP@3": 14.14,
+    "mAP@∞": 18.48,
+    "tightV2_mAP": 14.60
+  },
+  "per_class_mAP_at_inf": {
+    "PASS": 58.72,
+    "DRIVE": 56.56,
+    "HIGH PASS": 26.89,
+    "HEADER": 17.44,
+    "OUT": 15.20,
+    "CROSS": 7.40,
+    "THROW IN": 14.03,
+    "SHOT": 19.13,
+    "BALL PLAYER BLOCK": 4.48,
+    "PLAYER SUCCESSFUL TACKLE": 1.87,
+    "FREE KICK": 0.0,
+    "GOAL": 0.0
+  },
+  "expected": {
+    "mAP@∞": "26-28%",
+    "source": "FAANTRA paper (SN-BAA only, no joint training)"
+  },
+  "status": "complete",
+  "checkpoint": "checkpoints/sn-baa-baseline/sn_baa_paper/transformer/best_checkpoint.ckpt",
+  "config": "config/SoccerNetBall/SN-BAA-Paper.json",
+  "evaluated_at": "2026-01-03",
+  "notes": "Lower than paper (18.48% vs 28%) - author confirmed model is unstable to initial conditions. Still provides comparison baseline for corner prediction task."
+}
