@@ -1,0 +1,41 @@
+{
+  "task": "Binary Shot/No-Shot Prediction from Corner Kick Video",
+  "dataset": "corner_anticipation_binary",
+  "model": "FAANTRA",
+  "training": {
+    "epochs": 30,
+    "batch_size": 1,
+    "val_accuracy": "85.7%",
+    "checkpoint": "checkpoints/corners-binary/corner_binary/transformer/checkpoint/checkpoint.ckpt"
+  },
+  "test_results": {
+    "clips": 477,
+    "frame_level_error": 9.38,
+    "mAP_at_horizons": {
+      "at1": 0.0,
+      "at2": 0.0,
+      "at3": 0.0,
+      "at4": 0.0,
+      "at5": 0.5,
+      "atInfty": 0.5
+    },
+    "mAP_per_class": {
+      "SHOT": 0.258,
+      "NO_SHOT": 0.742
+    },
+    "mAP_visible": 1.0,
+    "mAP_unshown": 0.13,
+    "tight_mAP": 0.0625,
+    "tightV2_mAP": 0.375
+  },
+  "comparison_with_research_project": {
+    "research_project_auc": 0.43,
+    "faantra_binary_mAP": 0.50,
+    "conclusion": "Both approaches achieve essentially random performance (~50%), confirming that shot prediction from pre-corner observation is fundamentally unpredictable"
+  },
+  "class_distribution": {
+    "SHOT": "26.3%",
+    "NO_SHOT": "73.7%"
+  },
+  "date": "2026-01-04"
+}

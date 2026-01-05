@@ -103,7 +103,7 @@ class ActionSpotDataset(Dataset):
         self._frame_reader = FrameReader(frame_dir, dataset = dataset)
 
         #Variables for SN & SNB label paths if datastes
-        if (self._dataset == 'soccernet') | (self._dataset == 'soccernetball') | (self._dataset == 'soccernetballanticipation') :
+        if (self._dataset == 'soccernet') | (self._dataset == 'soccernetball') | ('anticipation' in self._dataset) :
             global LABELS_SN_PATH
             global LABELS_SNB_PATH
             global LABELS_SNBA_PATH
@@ -113,7 +113,7 @@ class ActionSpotDataset(Dataset):
 
         #Store or load clips
         if self._store_mode == 'store':
-            self._store_clips_anticipation() if self._dataset == 'soccernetballanticipation' else self._store_clips()
+            self._store_clips_anticipation() if 'anticipation' in self._dataset else self._store_clips()
         elif self._store_mode == 'load':
             self._load_clips()
 
@@ -483,7 +483,7 @@ class FrameReader:
             video_name = video_name.split('_')[0]  
             path = os.path.join(self._frame_dir, video_name)
 
-        if self.dataset == 'soccernetball' or self.dataset == 'soccernetballanticipation':
+        if self.dataset == 'soccernetball' or 'anticipation' in self.dataset:
             path = os.path.join(self._frame_dir, video_name)
 
         found_start = -1
@@ -528,7 +528,7 @@ class FrameReader:
                 base_path = path
                 ndigits = -1
 
-            elif self.dataset == 'soccernetball' or 'soccernetballanticipation':
+            elif self.dataset == 'soccernetball' or 'anticipation' in self.dataset:
                 frame = frame_num
                 frame_path = os.path.join(path, 'frame' + str(frame) + '.jpg')
                 base_path = path
@@ -595,7 +595,7 @@ class ActionAnticipationVideoDataset(Dataset):
             stride=1,                       # Downsample frame rate
             dataset = 'soccernetballanticipation',
     ):
-        if not dataset == 'soccernetballanticipation':
+        if 'anticipation' not in dataset:
             print("For evaluating on datasets other than the Ball Action Anticipation dataset use the ActionSpotVideoDataset class")
             raise NotImplementedError
         self._src_file = label_file
@@ -607,6 +607,7 @@ class ActionAnticipationVideoDataset(Dataset):
         self._stride = stride
         self._dataset = dataset
 
+        self._frame_dir = frame_dir
         self._frame_reader = FrameReaderVideo(frame_dir, dataset = dataset)
 
         #Variables for SNBA label paths if datastes
@@ -622,10 +623,15 @@ class ActionAnticipationVideoDataset(Dataset):
             clip_len = int(l['num_frames']/num_clips)
             self._annotations[l['video']] = []
             video_annotations = load_json(os.path.join(LABELS_SNBA_PATH, l['video'] + '/Labels-ball.json'))['videos']
+            local_clip_idx = 0
             for c in range(num_clips):
+                clip_path = os.path.join(self._frame_dir, l['video'], f'clip_{c+1}')
+                if not os.path.exists(clip_path):
+                    continue  # Skip missing clips
                 has_clip = True
-                self._clips.append((l['video'] + f'/clip_{c+1}', l['video'], c, clip_len))
+                self._clips.append((l['video'] + f'/clip_{c+1}', l['video'], local_clip_idx, clip_len))
                 self._annotations[l['video']].append(video_annotations[c]['annotations']['anticipation'])
+                local_clip_idx += 1
             assert has_clip, l
 
     def __len__(self):

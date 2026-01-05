@@ -67,12 +67,12 @@ def main():
         model.load_state_dict(checkpoint)
     # Evaluate and print results
     if args.split == "challenge":
-        if args.dataset == 'soccernetballanticipation':
+        if 'anticipation' in args.dataset:
             evaluate_BAA(args.split, model, n_class, actions_dict, pad_idx, args, True, args.actionness, args.use_anchors, args.checkpoint)
         else:
             evaluate(args.split, model, n_class, actions_dict, pad_idx, args, args.overlap, True, args.actionness, args.use_anchors)
     else:
-        if args.dataset == 'soccernetballanticipation':
+        if 'anticipation' in args.dataset:
             results, predictions, targets = evaluate_BAA(args.split, model, n_class, actions_dict, pad_idx, args, True, args.actionness, args.use_anchors, args.checkpoint)
         else:
             results, predictions, targets = evaluate(args.split, model, n_class, actions_dict, pad_idx, args, args.overlap, True, args.actionness, args.use_anchors)

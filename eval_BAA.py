@@ -13,7 +13,8 @@ from util.io import store_json_snba
 from SoccerNet.Evaluation.ActionSpotting import average_mAP
 
 #Constants
-INFERENCE_BATCH_SIZE = 4
+# Use batch_size=1 to avoid collation issues with inconsistent data types
+INFERENCE_BATCH_SIZE = 1
 
 class ErrorStat:
 
@@ -113,7 +114,7 @@ def evaluate_BAA(split, model, n_class, classes_dict, pad_index, args, test=Fals
         split_data = ActionAnticipationVideoDataset(classes_dict, split_path, args.frame_dir, obs_len, stride = STRIDE_SNBA, dataset = args.dataset)
         if split_data._dataset == 'soccernetball':
             raise NotImplementedError(f'To evaluate on the soccernetball dataset use the eval.py file.')
-        elif not split_data._dataset == 'soccernetballanticipation':
+        elif 'anticipation' not in split_data._dataset:
             raise NotImplementedError(f'Evaluation for {split_data._dataset} is not implemented yet.')
         
         # Get video and label information
@@ -128,13 +129,28 @@ def evaluate_BAA(split, model, n_class, classes_dict, pad_index, args, test=Fals
             target_visibility[video] = np.zeros_like(actual_visibility[video])
 
 
+        skipped_clips = 0
         with torch.no_grad():
             for clip in tqdm(DataLoader(
                     split_data, num_workers=args.num_workers, pin_memory=args.num_workers > 0,
                     batch_size=INFERENCE_BATCH_SIZE, shuffle=False
             )):
+                # Skip clips with malformed data (missing frames)
+                try:
+                    frame_tensor = clip['frame']
+                    if frame_tensor.dim() < 4:  # Expected: [batch, frames, C, H, W]
+                        skipped_clips += 1
+                        continue
+                except Exception as e:
+                    skipped_clips += 1
+                    continue
+
                 # Get predictions from model
-                outputs = model(clip['frame'][:,:obs_len], mode="test")
+                try:
+                    outputs = model(clip['frame'][:,:obs_len], mode="test")
+                except (IndexError, RuntimeError) as e:
+                    skipped_clips += 1
+                    continue
                 # Remove join training classes if joint training is used
                 if jointtrain_exists:
                     batch_pred_scores = outputs['action'][...,:model_head1_sizes[1]].softmax(dim=2).detach().cpu().numpy()
@@ -225,11 +241,14 @@ def evaluate_BAA(split, model, n_class, classes_dict, pad_index, args, test=Fals
                             target_labels[video][clip_num][label_index] = actual_labels[video][clip_num][label_index]
                             target_visibility[video][clip_num][label_index] = actual_visibility[video][clip_num][label_index]
 
+        if skipped_clips > 0:
+            print(f"\nWarning: Skipped {skipped_clips} clips due to missing/malformed frames")
+
         # Get error rate and f1 score
         err, f1, pred_scores = process_frame_predictions(pred_dict, target_labels, pad_index)
         # Evaluate mAP
         if not test:
-            if split_data._dataset == 'soccernetballanticipation':
+            if 'anticipation' in split_data._dataset:
                 return evaluate_SNBA(target_labels, target_visibility, pred_scores, ((pred_len*2)//(FPS_SN/STRIDE_SNBA))+1)
             else:
                 raise NotImplementedError(f'Evaluation for {split_data._dataset} is not implemented yet.')
@@ -252,7 +271,7 @@ def evaluate_BAA(split, model, n_class, classes_dict, pad_index, args, test=Fals
                 if save_pred is not None:
                     print(f"Storing test predictions somewhere under {os.path.join('/'.join(save_pred.split('/')[:-1]) + '/preds')}")
                     store_json_snba(save_pred, pred_scores, pad_index, classes_dict, STRIDE_SNBA)
-                if split_data._dataset == 'soccernetballanticipation':
+                if 'anticipation' in split_data._dataset:
                     return evaluate_SNBA(target_labels, target_visibility, pred_scores, ((pred_len*2)//(FPS_SN/STRIDE_SNBA))+1)
                 else:
                     raise NotImplementedError(f'Evaluation for {split_data._dataset} is not implemented yet.')
